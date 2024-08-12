@@ -1,0 +1,4 @@
+.venv
+*.mkv*
+*.cfg*
+*.weights*
