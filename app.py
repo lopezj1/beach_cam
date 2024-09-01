@@ -1,5 +1,5 @@
 from flask import Flask, render_template, Response
-from detector import generate_frames
+from detector import generate_frames_from_download
 
 app = Flask(__name__)
 
@@ -9,7 +9,7 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(),
+    return Response(generate_frames_from_download(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':

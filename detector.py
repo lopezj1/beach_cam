@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from config import CAR_THRESHOLD
 from notifier import send_sms_alert
-from utils import get_stream_url
+from utils import get_stream_url, download_video
 
 # Load YOLO model
 net = cv2.dnn.readNet("yolov4.weights", "yolov4.cfg")
@@ -62,7 +62,38 @@ def detect_objects(frame):
     
     return frame, car_count
 
-def generate_frames():
+def generate_frames_from_download():
+    video_file = download_video()
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_file)
+
+    if not cap.isOpened():
+        print("Error: Could not open video file.")
+        exit()
+
+    while True:
+        success, frame = cap.read()
+        if not success:
+            print("Failed to grab frame")
+            break
+        
+        # Detect objects and count cars
+        frame, car_count = detect_objects(frame)
+
+        # Send SMS alert if car count exceeds threshold
+        if car_count >= CAR_THRESHOLD:
+            send_sms_alert(car_count)
+
+        # Encode the frame in JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        # Yield the output frame in byte format
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+def generate_frames_from_stream():
     stream_url = get_stream_url()
 
     if stream_url is None:
@@ -74,6 +105,7 @@ def generate_frames():
     while True:
         success, frame = cap.read()
         if not success:
+            print("Failed to grab frame")
             break
         
         # Detect objects and count cars
