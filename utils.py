@@ -48,10 +48,10 @@ def download_m3u8_playlist():
     if response.status_code == 200:
         with open(file_path, 'wb') as file:
             file.write(response.content)
-        print('File downloaded successfully')
+        print('Playlist file downloaded successfully')
         return file_path
     else:
-        print('Failed to download file')
+        print('Failed to download playlist file')
         return None
 
 def get_last_segments(m3u8_content, num_segments=5):
@@ -79,6 +79,7 @@ def download_segments(segment_urls):
                 [file.write(chunk) for chunk in response.iter_content(chunk_size=1024) if chunk]
                         
             segment_files.append(local_filename)
+            print(f'Segment_{i} downloaded successfully')
         else:
             print(f"Failed to download segment: {url}")
 
@@ -117,10 +118,15 @@ def download_stream() -> str:
     segment_files = download_segments(segment_urls)
     output_file_path = combine_segments_to_avi(segment_files)
 
-    # Clean up downloaded segment files
-    for file in segment_files:
-        os.remove(file)
-    os.rmdir(os.path.join(DATA_DIR, 'segments'))
-    os.remove(m3u8_file_path)
-
     return output_file_path
+
+def cleanup_tmp_files():
+    for filename in os.listdir(DATA_DIR):
+        file_path = os.path.join(DATA_DIR, filename)
+
+        if filename.endswith(".ts") or filename.endswith(".m3u8"):
+            try:
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")

@@ -1,9 +1,11 @@
+import os
 import cv2
 import time
 import numpy as np
 from config import CAR_THRESHOLD
 from notifier import send_sms_alert
-from utils import download_stream
+from utils import download_stream, cleanup_tmp_files
+from config import DATA_DIR
 
 # Load YOLO model
 net = cv2.dnn.readNet("./yolo_models/yolov4.weights", "./yolo_models/yolov4.cfg")
@@ -84,49 +86,25 @@ def detect_objects(frame):
     return frame, car_count
 
 def generate_frames_from_download():
-    video_file = download_stream()
-    print(f'video file info: {video_file}')
-
-    # Open the video file
+    video_file = os.path.join(DATA_DIR, 'output.avi')
     cap = cv2.VideoCapture(video_file)
 
     if not cap.isOpened():
         print("Error: Could not open video file.")
         return
 
-    loop_reset_flag = False  # Track loop reset
-
     try:
         while True:
             success, frame = cap.read()
-
-            # If we fail to grab a frame, loop the video
-            if not success:
-                print("Reached end of video, looping back to start.")
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reset to the first frame
-                loop_reset_flag = True  # Set loop reset flag
-                continue
-
             frame = cv2.resize(frame, (640, 360))  # Resize frame to speed up processing
-
-            # Normal frame processing
             frame, car_count = detect_objects(frame)
 
             # Encode the frame in JPEG format
             ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
             frame = buffer.tobytes()
 
-            # Add loop reset header to the first frame after looping
-            if loop_reset_flag:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n'
-                       b'X-Loop-Reset: true\r\n\r\n' + frame + b'\r\n')
-                loop_reset_flag = False  # Reset the flag after sending
-                # Wait briefly to ensure the header is properly processed
-                time.sleep(0.1)
-            else:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
     finally:
         cap.release()
 
