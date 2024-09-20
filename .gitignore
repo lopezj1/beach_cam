@@ -1,5 +1,5 @@
+poc/
+data/
+yolo_models/
 .venv
-*.mkv*
-*.cfg*
-*.weights*
 __pycache__

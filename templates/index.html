@@ -1,13 +1,20 @@
 <!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Stream</title>
+    <title>NJ Beachcam</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Video Stream from OpenCV</h1>
-    <img src="{{ url_for('video_feed') }}" width="720" height="480">
+    <h1>NJ Beachcam Object Detection</h1>
+    <div id="video-container" style="position: relative;">
+        <img id="video-stream" src="{{ url_for('video_feed') }}" style="width: 640px; height: 360px;" />
+        <div id="restart-notification">Video Restarting...</div>
+    </div>
+
+    <script src="{{ url_for('static', filename='video_loop.js') }}"></script>
 </body>
 </html>
