@@ -1,5 +1,6 @@
 poc/
 data/
 yolo_models/
+runs/
 .venv
 __pycache__

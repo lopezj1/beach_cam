@@ -1,26 +1,41 @@
-const restartNotification = document.getElementById('restart-notification');
-const videoStream = document.getElementById('video-stream');
+function startVideoStream() {
+    const videoElement = document.getElementById('video-stream');
+    let streamUrl = '/video_feed';  // The video stream endpoint
 
-// Function to show the restart notification
-function showRestartNotification() {
-    restartNotification.style.display = 'block';
-    setTimeout(() => {
-        restartNotification.style.display = 'none';
-    }, 3000);  // Hide after 3 seconds
+    function updateStream() {
+        fetch(streamUrl)
+            .then(response => {
+                const reader = response.body.getReader();
+                let decoder = new TextDecoder();
+
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // Restart stream after it ends
+                            console.log('Stream ended. Restarting...');
+                            updateStream();  // Restart the stream
+                            return;
+                        }
+
+                        const text = decoder.decode(value, { stream: true });
+                        if (text.includes('Video replaying')) {
+                            alert('The video is replaying.');
+                        } else {
+                            // Assuming the value is a frame and rendering it
+                            videoElement.src = 'data:image/jpeg;base64,' + btoa(text);
+                        }
+                        return readStream();  // Continue reading stream
+                    });
+                }
+                return readStream();
+            })
+            .catch(err => {
+                console.error('Error fetching stream:', err);
+                setTimeout(updateStream, 1000);  // Retry fetching stream after 1 second
+            });
+    }
+
+    updateStream();  // Start the stream when the page loads
 }
 
-// Add an event listener to detect header resets
-videoStream.addEventListener('load', function () {
-    // Check the response headers for the loop reset marker
-    fetch(this.src, { method: 'HEAD' })
-        .then(response => {
-            if (response.headers.get('X-Loop-Reset') === 'true') {
-                showRestartNotification();
-            }
-        });
-});
-
-// Poll the stream to check for loop reset
-setInterval(() => {
-    videoStream.src = videoStream.src.split('?')[0] + '?' + new Date().getTime();  // Update stream with cache buster
-}, 1000);
+window.onload = startVideoStream;

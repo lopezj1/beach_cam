@@ -3,6 +3,7 @@ import requests
 import ffmpeg
 import yt_dlp as ytdlp
 from yt_dlp.utils import download_range_func
+from ultralytics import YOLO
 from config import YOUTUBE_URL, DATA_DIR
 
 def download_video():
@@ -130,3 +131,28 @@ def cleanup_tmp_files():
                 print(f"Deleted: {file_path}")
             except Exception as e:
                 print(f"Error deleting {file_path}: {e}")
+
+def detect_objects():
+    model = YOLO("./yolo_models/yolov8n.pt") 
+
+    if not os.path.exists("./yolo_models/yolov8n.onnx"):
+        model.export(format="onnx")  # Export the model to ONNX format, creates 'yolov8n.onnx'
+
+    # Load the exported ONNX model
+    onnx_model = YOLO("./yolo_models/yolov8n.onnx", task='detect')
+
+    video_file = './data/output.avi'
+    results = onnx_model.predict(video_file 
+                                ,device='cpu'
+                                ,conf=0.5
+                                ,classes=[0,2,6,7,13]
+                                ,vid_stride=10
+                                # ,show=True 
+                                )
+
+    annotated_dir = os.path.join('data', 'annotated')
+    if not os.path.exists(annotated_dir):
+        os.makedirs(annotated_dir)
+        
+    for i, r in enumerate(results):
+        r.save(f'./{annotated_dir}/annotated_frame_{i}.jpg')
