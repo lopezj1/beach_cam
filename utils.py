@@ -1,30 +1,14 @@
 import os
+import cv2
 import requests
 import ffmpeg
 import yt_dlp as ytdlp
-from yt_dlp.utils import download_range_func
 from ultralytics import YOLO
-from config import YOUTUBE_URL, DATA_DIR
 
-def download_video():
-    '''
-    Downloads non-live stream youtube video into .mp4 format
-    '''
-    # Options for yt-dlp
-    start_time = 0
-    end_time = 30
-    ydl_opts = {
-        'format': 'best',
-        'format_sort': ['proto:https'],
-        'outtmpl': 'output.mp4',  # Output filename
-        "download_ranges": download_range_func(None, [(start_time, end_time)]),
-        'verbose': True,
-    }
-
-    with ytdlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([YOUTUBE_URL])
-
-    return ydl_opts.get('outtmpl')
+YOUTUBE_URL = "https://www.youtube.com/watch?v=FpkJ6hwJmic" #live stream
+DATA_DIR = "./data"
+FRAMES_DIR = './data/annotated'
+PROCESSED_VIDEO = f"{DATA_DIR}/processed_video.mp4"
 
 def download_m3u8_playlist():
     '''
@@ -156,3 +140,22 @@ def detect_objects():
         
     for i, r in enumerate(results):
         r.save(f'./{annotated_dir}/annotated_frame_{i}.jpg')
+
+def save_video_from_frames(processed_video_path=PROCESSED_VIDEO, fps=10, frame_size=None):
+    # Get the list of frame files and sort them
+    frame_files = sorted(f for f in os.listdir(FRAMES_DIR) if f.lower().endswith('.jpg'))
+
+    # Initialize the video writer
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4
+    video_writer = cv2.VideoWriter(processed_video_path, fourcc, fps, frame_size)
+
+    try:
+        for frame_file in frame_files:
+            frame_path = os.path.join(FRAMES_DIR, frame_file)
+            frame = cv2.imread(frame_path)
+            video_writer.write(frame)
+    finally:
+        # Release the video writer
+        video_writer.release()
+
+    print(f"Video saved to {processed_video_path}")
