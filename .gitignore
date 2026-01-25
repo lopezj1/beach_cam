@@ -1,6 +1,4 @@
-poc/
-data/
-yolo_models/
-runs/
 .venv
+.env
 __pycache__
+yolo_models/
